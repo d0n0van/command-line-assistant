@@ -12,8 +12,8 @@ def test_default_config():
     """Test default configuration values."""
     config = Config()
     assert config.ollama_endpoint == "http://localhost:11434/api/generate"
-    assert config.ollama_model == "mistral:instruct"
-    assert config.ollama_temperature == 0.7
+    assert config.ollama_model == "mistral-nemo"
+    assert config.ollama_temperature == 0.1
 
 
 def test_config_from_file():

@@ -20,10 +20,9 @@ Depends: ${python3:Depends},
          ${misc:Depends},
          python3-requests,
          python3-click,
-         python3-tomli,
-         systemd
+         python3-tomli
 Description: Command-line assistant powered by Ollama
  Command-line assistant that provides AI-driven assistance using Ollama.
  Configure Ollama endpoint, model, and temperature via configuration file.
- Includes both CLI tool and daemon service.
+ Includes CLI tool for AI-driven assistance.
 

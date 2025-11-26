@@ -12,7 +12,6 @@ A production-ready command-line assistant powered by Ollama that provides AI-dri
 - **Self-Learning**: Learns from successful commands and error fixes
 - **Safety Features**: Built-in protection with input sanitization and dangerous command blocking
 - **Configurable**: Flexible configuration via TOML files or environment variables
-- **Daemon Service**: Background service support for systemd
 
 ## Installation
 
@@ -264,24 +263,6 @@ cla --platform-info
 
 Commands are automatically adapted to your platform.
 
-### Daemon Service
-
-Run as a background service:
-
-```bash
-# Start service
-sudo systemctl start command-line-assistant
-
-# Enable on boot
-sudo systemctl enable command-line-assistant
-
-# Check status
-sudo systemctl status command-line-assistant
-
-# View logs
-sudo journalctl -u command-line-assistant -f
-```
-
 ## Requirements
 
 - **Python**: 3.8 or higher
@@ -331,7 +312,6 @@ The codebase is organized into logical modules:
 - **`prompt_builder.py`**: System prompt generation with self-learning
 - **`schemas.py`**: JSON schemas for structured outputs
 - **`sanitizer.py`**: Input sanitization and validation
-- **`daemon.py`**: Background service implementation
 - **`logger.py`**: Centralized logging configuration
 - **`exceptions.py`**: Custom exception classes
 
@@ -375,7 +355,6 @@ If you see permission errors, check:
 
 - Config file permissions
 - Learning data file location (`~/.config/command-line-assistant/`)
-- System service permissions (if using daemon)
 
 ## Contributing
 

@@ -2,7 +2,8 @@
 
 import re
 import subprocess
-from typing import Optional, Tuple
+import json
+from typing import Optional, Tuple, List, Dict
 
 from command_line_assistant.logger import get_logger
 from command_line_assistant.sanitizer import InputSanitizer
@@ -42,10 +43,12 @@ class CommandExecutor:
 
     def extract_command(self, text: str) -> Optional[str]:
         """
-        Extract command from AI response.
+        Extract a single command from AI response.
 
-        Primary format: ```bash ... ``` code blocks (as per system prompt).
-        Falls back to other formats for compatibility.
+        Supports:
+        1. Structured JSON format with "commands" array (primary)
+        2. Code blocks (```bash ... ```) for backward compatibility
+        3. Legacy EXECUTE: format
 
         Args:
             text: The AI response text.
@@ -53,8 +56,20 @@ class CommandExecutor:
         Returns:
             Extracted command or None if no command found.
         """
-        # Pattern 1: ```bash\ncommand\n``` (PRIMARY - matches system prompt format)
-        # This is the strict format expected by the automation agent
+        # First, try to parse as structured JSON (primary format)
+        data = self._parse_json_commands(text)
+        if data and isinstance(data, dict) and "commands" in data:
+            commands_array = data.get("commands", [])
+            if isinstance(commands_array, list) and len(commands_array) > 0:
+                # Return first command from JSON
+                cmd_obj = commands_array[0]
+                if isinstance(cmd_obj, dict):
+                    cmd_text = cmd_obj.get("command", "").strip()
+                    if cmd_text:
+                        return cmd_text
+        
+        # Fallback to code block patterns for backward compatibility
+        # Pattern 1: ```bash\ncommand\n``` (fallback - matches old system prompt format)
         pattern1 = r"```bash\s*\n(.*?)\n```"
         match = re.search(pattern1, text, re.DOTALL)
         if match:
@@ -101,6 +116,176 @@ class CommandExecutor:
         # No code block found - this is expected when AI asks for clarification
         # or refuses to execute dangerous commands
         return None
+
+    def _parse_json_commands(self, text: str) -> Optional[Dict]:
+        """
+        Helper method to parse JSON and extract commands data.
+        
+        Args:
+            text: The text to parse.
+            
+        Returns:
+            Parsed JSON dict if valid, None otherwise.
+        """
+        # Look for JSON code blocks first
+        json_block_pattern = r'```(?:json)?\s*\n(\{.*?\})\n```'
+        json_block_match = re.search(json_block_pattern, text, re.DOTALL)
+        if json_block_match:
+            try:
+                return json.loads(json_block_match.group(1))
+            except json.JSONDecodeError:
+                pass
+        
+        # Try to find JSON in plain text (without code blocks)
+        json_start = text.find('{')
+        if json_start != -1:
+            brace_count = 0
+            json_end = -1
+            for i in range(json_start, len(text)):
+                if text[i] == '{':
+                    brace_count += 1
+                elif text[i] == '}':
+                    brace_count -= 1
+                    if brace_count == 0:
+                        json_end = i + 1
+                        break
+            
+            if json_end != -1:
+                try:
+                    return json.loads(text[json_start:json_end])
+                except (json.JSONDecodeError, ValueError):
+                    pass
+        
+        return None
+
+    def extract_thinking(self, text: str) -> str:
+        """
+        Extract thinking/reasoning from structured JSON response.
+        
+        Args:
+            text: The AI response text.
+            
+        Returns:
+            Thinking text or empty string if not found.
+        """
+        data = self._parse_json_commands(text)
+        if data and isinstance(data, dict) and "thinking" in data:
+            thinking = data.get("thinking", "").strip()
+            return thinking
+        return ""
+
+    def extract_commands_with_descriptions(self, text: str) -> List[Dict[str, str]]:
+        """
+        Extract commands with descriptions from structured JSON response.
+        
+        Args:
+            text: The AI response text.
+            
+        Returns:
+            List of dicts with 'command' and 'description' keys.
+        """
+        result = []
+        data = self._parse_json_commands(text)
+        
+        if data and isinstance(data, dict) and "commands" in data:
+            commands_array = data.get("commands", [])
+            if isinstance(commands_array, list):
+                for cmd_obj in commands_array:
+                    if isinstance(cmd_obj, dict):
+                        cmd_text = cmd_obj.get("command", "").strip()
+                        cmd_desc = cmd_obj.get("description", "").strip()
+                        if cmd_text:
+                            result.append({
+                                "command": cmd_text,
+                                "description": cmd_desc or "No description"
+                            })
+        
+        return result
+
+    def extract_all_commands(self, text: str) -> List[str]:
+        """
+        Extract all commands from AI response.
+        
+        Looks for:
+        1. Structured JSON format with "commands" array
+        2. Multiple code blocks (```bash ... ```, ```sh ... ```, etc.)
+        3. Numbered commands in text (1. command, 2. command, etc.) with associated code blocks
+        
+        Args:
+            text: The AI response text.
+            
+        Returns:
+            List of extracted commands (may be empty).
+        """
+        commands = []
+        
+        # First, try to parse as structured JSON
+        data = self._parse_json_commands(text)
+        if data and isinstance(data, dict) and "commands" in data:
+            commands_array = data.get("commands", [])
+            if isinstance(commands_array, list):
+                for cmd_obj in commands_array:
+                    if isinstance(cmd_obj, dict):
+                        cmd_text = cmd_obj.get("command", "").strip()
+                        if cmd_text:
+                            commands.append(cmd_text)
+                if commands:
+                    return commands
+        
+        # First, find all code blocks and check if they're associated with numbered items
+        # Pattern to match: "1. text... ```bash\ncommand\n```" or "```bash\ncommand\n```" (standalone)
+        code_block_pattern = r"```(bash|sh|cmd|powershell|python)?\s*\n(.*?)\n```"
+        code_blocks = list(re.finditer(code_block_pattern, text, re.DOTALL))
+        
+        if len(code_blocks) > 1:
+            # Multiple code blocks found - extract all bash/sh commands
+            for match in code_blocks:
+                lang = match.group(1) or ""
+                cmd = match.group(2).strip()
+                
+                # Only extract bash/sh commands (Linux commands)
+                if lang.lower() in ('bash', 'sh', '') or not lang:
+                    if cmd:
+                        cmd = re.sub(r'^\s+|\s+$', '', cmd, flags=re.MULTILINE)
+                        lines = [line.strip() for line in cmd.split('\n') if line.strip()]
+                        if lines:
+                            cmd_str = ' && '.join(lines)
+                            # Filter out Windows/PowerShell commands
+                            if not any(windows_cmd in cmd_str.lower() for windows_cmd in ['powershell', 'get-childitem', 'dir /s', 'for /f', 'cmd.exe']):
+                                commands.append(cmd_str)
+        
+        # If we found multiple Linux commands, return them
+        if len(commands) > 1:
+            return commands
+        
+        # Check for numbered items with code blocks
+        # Pattern: "1. **Linux/Unix...** ```bash\ncommand\n```"
+        numbered_section_pattern = r"(\d+)\.\s+[^\n]*\n(?:[^\n]*\n)?```(bash|sh)?\s*\n(.*?)\n```"
+        numbered_sections = list(re.finditer(numbered_section_pattern, text, re.DOTALL | re.IGNORECASE))
+        
+        if numbered_sections and len(numbered_sections) > 1:
+            # Found numbered sections with code blocks
+            numbered_commands = []
+            for match in numbered_sections:
+                lang = match.group(2) or ""
+                cmd = match.group(3).strip()
+                
+                # Only extract bash/sh commands (Linux commands)
+                if lang.lower() in ('bash', 'sh', '') or not lang:
+                    if cmd:
+                        cmd = re.sub(r'^\s+|\s+$', '', cmd, flags=re.MULTILINE)
+                        lines = [line.strip() for line in cmd.split('\n') if line.strip()]
+                        if lines:
+                            cmd_str = ' && '.join(lines)
+                            # Filter out Windows/PowerShell commands
+                            if not any(windows_cmd in cmd_str.lower() for windows_cmd in ['powershell', 'get-childitem', 'dir /s', 'for /f', 'cmd.exe']):
+                                numbered_commands.append(cmd_str)
+            
+            if numbered_commands:
+                return numbered_commands
+        
+        # Return single command if found, or empty list
+        return commands if commands else []
 
     def is_dangerous(self, command: str) -> bool:
         """

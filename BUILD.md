@@ -279,12 +279,6 @@ After installation, verify the installation:
 ```bash
 # Check CLI tool
 cla --version
-
-# Check daemon binary
-clad --help
-
-# Check service (if installed via RPM)
-systemctl status command-line-assistant
 ```
 
 ## Docker Testing
@@ -361,8 +355,6 @@ docker run --rm cla-test-suse
 
 The test script verifies:
 - CLI tool (`cla`) is available and works
-- Daemon binary (`clad`) is available
-- Systemd service file is installed
 - Config file is installed
 - Python module can be imported
 

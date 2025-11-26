@@ -1,5 +1,6 @@
 """Integration tests for command-line-assistant."""
 
+import os
 import subprocess
 from unittest.mock import patch, MagicMock
 import pytest
@@ -8,6 +9,9 @@ from click.testing import CliRunner
 from command_line_assistant.cli import main, process_query_with_execution
 from command_line_assistant.client import OllamaClient
 from command_line_assistant.executor import CommandExecutor
+
+# Disable Ollama strategy selection in tests
+os.environ["CLA_USE_OLLAMA_STRATEGY"] = "false"
 
 
 class TestDiskUsageIntegration:
@@ -48,11 +52,23 @@ df -h
 
         # Verify AI was called with system prompt
         assert mock_generate.called
-        call_args = mock_generate.call_args
+        # Check first call (may have multiple calls due to structured output fallback)
+        first_call = mock_generate.call_args_list[0] if mock_generate.call_args_list else mock_generate.call_args
+        if isinstance(first_call, tuple):
+            call_args = first_call[0]
+        else:
+            call_args = first_call[0]
         # System prompt should contain platform info or "Bash Automation"
-        assert "Bash Automation" in call_args[0][1] or "Linux" in call_args[0][1]
-        # First call should contain the original query
-        assert "check disk usage" in call_args[0][0] or "disk" in call_args[0][0].lower()
+        assert "Bash Automation" in call_args[1] or "Linux" in call_args[1]
+        # First call should contain the original query (or it may be in a follow-up call)
+        # Check all calls for the original query
+        found_query = False
+        for call in mock_generate.call_args_list:
+            if "check disk usage" in str(call[0][0]).lower() or "disk" in str(call[0][0]).lower():
+                found_query = True
+                break
+        # If not found in calls, it might be in the first iteration before follow-up
+        assert found_query or "check disk usage" in str(call_args[0]).lower() or "disk" in str(call_args[0]).lower()
 
         # Verify command was extracted and executed
         assert mock_execute.called

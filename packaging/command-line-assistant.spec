@@ -10,8 +10,7 @@ Summary:        Command-line assistant powered by Ollama
 License:        Apache-2.0
 URL:             https://github.com/rhel-lightspeed/command-line-assistant
 Source0:        %{name}-%{version}.tar.gz
-Source1:        command-line-assistant.service
-Source2:        config.toml
+Source1:        config.toml
 
 BuildArch:      noarch
 BuildRequires:  python3-devel
@@ -24,12 +23,11 @@ Requires:       python3-requests
 Requires:       python3-click
 # tomli is only needed for Python < 3.11, but including it won't hurt
 Requires:       python3-tomli
-Requires:       systemd
 
 %description
 Command-line assistant that provides AI-driven assistance using Ollama.
 Configure Ollama endpoint, model, and temperature via configuration file.
-Includes both CLI tool and daemon service.
+Includes CLI tool for AI-driven assistance.
 
 %prep
 %autosetup -n %{srcname}-%{version}
@@ -41,23 +39,9 @@ Includes both CLI tool and daemon service.
 %pyproject_install
 %pyproject_save_files command_line_assistant
 
-# Install systemd service
-install -d %{buildroot}%{_unitdir}
-install -m 644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
-
 # Install default config
 install -d %{buildroot}%{_sysconfdir}/xdg/command-line-assistant
-install -m 644 %{SOURCE2} %{buildroot}%{_sysconfdir}/xdg/command-line-assistant/config.toml
-
-%pre
-getent group command-line-assistant >/dev/null || groupadd -r command-line-assistant
-getent passwd command-line-assistant >/dev/null || \
-    useradd -r -g command-line-assistant -d /var/lib/command-line-assistant \
-    -s /sbin/nologin -c "Command Line Assistant Daemon" command-line-assistant
-# Create daemon directory
-mkdir -p /var/lib/command-line-assistant
-chown command-line-assistant:command-line-assistant /var/lib/command-line-assistant
-chmod 755 /var/lib/command-line-assistant
+install -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/xdg/command-line-assistant/config.toml
 
 %post
 # Verify and install dependencies if missing (dnf/yum will handle this automatically,
@@ -66,22 +50,13 @@ if ! rpm -q python3-requests >/dev/null 2>&1; then
     echo "Warning: python3-requests is not installed. Please install dependencies:" >&2
     echo "  sudo dnf install python3-requests python3-click python3-tomli" >&2
 fi
-%systemd_post %{name}.service
-
-%preun
-%systemd_preun %{name}.service
-
-%postun
-%systemd_postun_with_restart %{name}.service
 
 %files
 %license LICENSE
 %doc README.md
 %{_bindir}/cla
-%{_bindir}/clad
 %{python3_sitelib}/command_line_assistant
 %{python3_sitelib}/command_line_assistant-*.dist-info
-%{_unitdir}/%{name}.service
 %config(noreplace) %{_sysconfdir}/xdg/command-line-assistant/config.toml
 
 %changelog

@@ -22,8 +22,8 @@ except ImportError:
 DEFAULT_CONFIG = {
     "ollama": {
         "endpoint": "http://localhost:11434/api/generate",
-        "model": "mistral:instruct",
-        "temperature": 0.7,
+        "model": "mistral-nemo",
+        "temperature": 0.1,
     }
 }
 

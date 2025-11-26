@@ -11,7 +11,7 @@ from command_line_assistant.exceptions import (
     OllamaConnectionError,
     OllamaAPIError,
 )
-from command_line_assistant.logger import get_logger
+from command_line_assistant.logger import get_logger, is_debug_mode
 
 
 class OllamaClient:
@@ -67,6 +67,19 @@ class OllamaClient:
 
         try:
             self.logger.debug(f"Making request to {self.endpoint} with model {self.model}")
+            if is_debug_mode():
+                self.logger.debug("=" * 80)
+                self.logger.debug("OLLAMA REQUEST (generate API)")
+                self.logger.debug("=" * 80)
+                self.logger.debug(f"Endpoint: {self.endpoint}")
+                self.logger.debug(f"Model: {self.model}")
+                self.logger.debug(f"Temperature: {self.temperature}")
+                self.logger.debug(f"Stream: {stream}")
+                self.logger.debug(f"Timeout: {timeout}")
+                self.logger.debug("-" * 80)
+                self.logger.debug("PROMPT:")
+                self.logger.debug(prompt)
+                self.logger.debug("=" * 80)
             response = requests.post(
                 self.endpoint,
                 json=payload,
@@ -110,25 +123,50 @@ class OllamaClient:
             OllamaConnectionError: If connection fails.
             OllamaAPIError: If API returns an error.
         """
+        if is_debug_mode():
+            self.logger.debug("=" * 80)
+            self.logger.debug("GENERATE (simple prompt)")
+            self.logger.debug("=" * 80)
+            self.logger.debug("PROMPT:")
+            self.logger.debug(prompt)
+            self.logger.debug("=" * 80)
         response = self._make_request(prompt, stream=stream)
 
+        full_response = ""
         if stream:
             for line in response.iter_lines():
                 if line:
                     try:
                         data = json.loads(line)
                         if "response" in data:
-                            yield data["response"]
+                            chunk = data["response"]
+                            full_response += chunk
+                            yield chunk
                         if data.get("done", False):
                             break
                     except json.JSONDecodeError as e:
                         self.logger.warning(f"Failed to parse response line: {e}")
                         continue
+            if is_debug_mode():
+                self.logger.debug("=" * 80)
+                self.logger.debug("OLLAMA RESPONSE (generate API - streaming)")
+                self.logger.debug("=" * 80)
+                self.logger.debug("FULL RESPONSE:")
+                self.logger.debug(full_response)
+                self.logger.debug("=" * 80)
         else:
             try:
                 data = response.json()
                 if "response" in data:
-                    yield data["response"]
+                    full_response = data["response"]
+                    if is_debug_mode():
+                        self.logger.debug("=" * 80)
+                        self.logger.debug("OLLAMA RESPONSE (generate API - non-streaming)")
+                        self.logger.debug("=" * 80)
+                        self.logger.debug("FULL RESPONSE:")
+                        self.logger.debug(full_response)
+                        self.logger.debug("=" * 80)
+                    yield full_response
             except json.JSONDecodeError as e:
                 self.logger.error(f"Failed to parse Ollama response: {e}")
                 raise OllamaAPIError(f"Failed to parse Ollama response: {e}") from e
@@ -150,7 +188,15 @@ class OllamaClient:
         response = self._make_request(prompt, stream=False)
         try:
             data = response.json()
-            return data.get("response", "")
+            full_response = data.get("response", "")
+            if is_debug_mode():
+                self.logger.debug("=" * 80)
+                self.logger.debug("OLLAMA RESPONSE (generate_complete)")
+                self.logger.debug("=" * 80)
+                self.logger.debug("FULL RESPONSE:")
+                self.logger.debug(full_response)
+                self.logger.debug("=" * 80)
+            return full_response
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse Ollama response: {e}")
             raise OllamaAPIError(f"Failed to parse Ollama response: {e}") from e
@@ -175,6 +221,7 @@ class OllamaClient:
         """
         # Combine system and user prompts in a clear format
         full_prompt = f"{system_prompt}\n\nUser request: {user_prompt}\n\nResponse:"
+        # Note: generate() already logs responses in debug mode, so we don't need to log again here
         yield from self.generate(full_prompt, stream=stream)
 
     def _get_chat_endpoint(self) -> str:
@@ -236,6 +283,27 @@ class OllamaClient:
             )
             if format_schema:
                 self.logger.debug("Using structured output format")
+            if is_debug_mode():
+                self.logger.debug("=" * 80)
+                self.logger.debug("OLLAMA REQUEST (chat API)")
+                self.logger.debug("=" * 80)
+                self.logger.debug(f"Endpoint: {chat_endpoint}")
+                self.logger.debug(f"Model: {self.model}")
+                self.logger.debug(f"Temperature: {self.temperature}")
+                self.logger.debug(f"Stream: {stream}")
+                self.logger.debug(f"Timeout: {timeout}")
+                if format_schema:
+                    self.logger.debug("Structured output format: ENABLED")
+                self.logger.debug("-" * 80)
+                self.logger.debug("MESSAGES:")
+                for i, msg in enumerate(messages):
+                    role = msg.get("role", "unknown")
+                    content = msg.get("content", "")
+                    self.logger.debug(f"[{i+1}] Role: {role}")
+                    self.logger.debug(f"Content ({len(content)} chars):")
+                    self.logger.debug(content)
+                    self.logger.debug("-" * 40)
+                self.logger.debug("=" * 80)
             response = requests.post(
                 chat_endpoint,
                 json=payload,
@@ -308,16 +376,31 @@ class OllamaClient:
             {"role": "user", "content": user_prompt},
         ]
 
+        if is_debug_mode():
+            self.logger.debug("=" * 80)
+            self.logger.debug("GENERATE STRUCTURED")
+            self.logger.debug("=" * 80)
+            self.logger.debug("SYSTEM PROMPT:")
+            self.logger.debug(system_prompt)
+            self.logger.debug("-" * 80)
+            self.logger.debug("USER PROMPT:")
+            self.logger.debug(user_prompt)
+            if format_schema:
+                self.logger.debug("-" * 80)
+                self.logger.debug("FORMAT SCHEMA:")
+                self.logger.debug(json.dumps(format_schema, indent=2))
+            self.logger.debug("=" * 80)
+
         response = self._make_chat_request(
             messages=messages,
             stream=stream,
             format_schema=format_schema,
         )
 
+        content = ""
         try:
             if stream:
                 # For streaming, collect all chunks
-                content = ""
                 for line in response.iter_lines():
                     if line:
                         try:
@@ -328,15 +411,46 @@ class OllamaClient:
                                 break
                         except json.JSONDecodeError:
                             continue
-                return json.loads(content) if content else {}
+                parsed_response = json.loads(content) if content else {}
+                if is_debug_mode():
+                    self.logger.debug("=" * 80)
+                    self.logger.debug("OLLAMA RESPONSE (generate_structured - streaming)")
+                    self.logger.debug("=" * 80)
+                    self.logger.debug("RAW CONTENT:")
+                    self.logger.debug(content)
+                    self.logger.debug("-" * 80)
+                    self.logger.debug("PARSED RESPONSE:")
+                    self.logger.debug(json.dumps(parsed_response, indent=2))
+                    self.logger.debug("=" * 80)
+                return parsed_response
             else:
                 data = response.json()
                 content = data.get("message", {}).get("content", "")
                 if not content:
                     raise OllamaAPIError("Empty response from Ollama")
-                return json.loads(content)
+                parsed_response = json.loads(content)
+                if is_debug_mode():
+                    self.logger.debug("=" * 80)
+                    self.logger.debug("OLLAMA RESPONSE (generate_structured - non-streaming)")
+                    self.logger.debug("=" * 80)
+                    self.logger.debug("RAW CONTENT:")
+                    self.logger.debug(content)
+                    self.logger.debug("-" * 80)
+                    self.logger.debug("PARSED RESPONSE:")
+                    self.logger.debug(json.dumps(parsed_response, indent=2))
+                    self.logger.debug("=" * 80)
+                return parsed_response
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse structured response: {e}")
+            if is_debug_mode():
+                self.logger.debug("=" * 80)
+                self.logger.debug("OLLAMA RESPONSE ERROR")
+                self.logger.debug("=" * 80)
+                self.logger.debug(f"Error: {e}")
+                if content:
+                    self.logger.debug("Failed to parse content:")
+                    self.logger.debug(content)
+                self.logger.debug("=" * 80)
             raise OllamaAPIError(
                 f"Response does not match expected schema: {e}"
             ) from e
@@ -401,23 +515,41 @@ class OllamaClient:
         """
         response = self._make_chat_request(messages=messages, stream=stream)
 
+        full_response = ""
         if stream:
             for line in response.iter_lines():
                 if line:
                     try:
                         data = json.loads(line)
                         if "message" in data and "content" in data["message"]:
-                            yield data["message"]["content"]
+                            chunk = data["message"]["content"]
+                            full_response += chunk
+                            yield chunk
                         if data.get("done", False):
                             break
                     except json.JSONDecodeError as e:
                         self.logger.warning(f"Failed to parse response line: {e}")
                         continue
+            if is_debug_mode():
+                self.logger.debug("=" * 80)
+                self.logger.debug("OLLAMA RESPONSE (generate_chat - streaming)")
+                self.logger.debug("=" * 80)
+                self.logger.debug("FULL RESPONSE:")
+                self.logger.debug(full_response)
+                self.logger.debug("=" * 80)
         else:
             try:
                 data = response.json()
                 if "message" in data and "content" in data["message"]:
-                    yield data["message"]["content"]
+                    full_response = data["message"]["content"]
+                    if is_debug_mode():
+                        self.logger.debug("=" * 80)
+                        self.logger.debug("OLLAMA RESPONSE (generate_chat - non-streaming)")
+                        self.logger.debug("=" * 80)
+                        self.logger.debug("FULL RESPONSE:")
+                        self.logger.debug(full_response)
+                        self.logger.debug("=" * 80)
+                    yield full_response
             except json.JSONDecodeError as e:
                 self.logger.error(f"Failed to parse Ollama response: {e}")
                 raise OllamaAPIError(f"Failed to parse Ollama response: {e}") from e

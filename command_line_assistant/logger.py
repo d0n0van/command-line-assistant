@@ -13,6 +13,36 @@ except ImportError:
     journal = None
 
 
+# Global debug flag
+_debug_mode = False
+
+
+def set_debug_mode(enabled: bool) -> None:
+    """
+    Enable or disable debug mode globally.
+
+    Args:
+        enabled: Whether to enable debug mode.
+    """
+    global _debug_mode
+    _debug_mode = enabled
+    # Update all existing loggers
+    for logger_name in logging.Logger.manager.loggerDict:
+        logger = logging.getLogger(logger_name)
+        if logger.handlers:
+            logger.setLevel(logging.DEBUG if enabled else logging.INFO)
+
+
+def is_debug_mode() -> bool:
+    """
+    Check if debug mode is enabled.
+
+    Returns:
+        True if debug mode is enabled, False otherwise.
+    """
+    return _debug_mode
+
+
 def get_logger(name: Optional[str] = None) -> logging.Logger:
     """
     Get a logger instance for the command-line-assistant.
@@ -28,7 +58,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
 
     # Only configure if not already configured
     if not logger.handlers:
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG if _debug_mode else logging.INFO)
 
         if USE_JOURNAL:
             handler = journal.JournalHandler()
