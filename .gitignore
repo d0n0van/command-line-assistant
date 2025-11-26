@@ -1,0 +1,174 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec.bak
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+.conda/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# RPM build
+*.tar.gz
+rpmbuild/
+*.rpm
+*.src.rpm
+SRPMS/
+RPMS/
+SOURCES/
+SPECS/
+BUILD/
+BUILDROOT/
+
+# DEB build
+debuild/
+*.deb
+*.dsc
+*.changes
+*.buildinfo
+debian/.debhelper/
+debian/files
+debian/tmp/
+
+# Arch build
+archbuild/
+*.pkg.tar.zst
+*.pkg.tar.xz
+*.pkg.tar
+src/
+pkg/
+
+# Gentoo build
+*.ebuild
+*.ebuild.orig
+Manifest
+files/digest-*
+
+# Docker test artifacts
+docker/rpm-packages/
+docker/*.log
+docker/*.tmp
+
+# Local config
+*.local
+config.local.toml
+*.bak
+*.backup
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+*.pid
+*.lock
+
+# OS-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Project-specific build artifacts
+command-line-assistant-*.tar.gz
+command-line-assistant-*/
+*.whl
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+

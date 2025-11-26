@@ -1,0 +1,21 @@
+FROM gentoo/stage3:latest
+
+# Note: Gentoo builds are complex and may require a full Gentoo environment
+# This is a simplified version that may need adjustment
+RUN echo "Gentoo ebuild testing requires a full Gentoo environment"
+RUN echo "This Dockerfile is a placeholder and may need customization"
+
+WORKDIR /build
+
+# Copy ebuild and files
+COPY packaging/command-line-assistant/command-line-assistant-*.ebuild ./
+COPY packaging/command-line-assistant.service ./
+COPY packaging/config.toml ./
+
+# Copy test script
+COPY docker/test-package.sh /test-package.sh
+RUN chmod +x /test-package.sh
+
+# Run tests
+CMD ["/test-package.sh"]
+

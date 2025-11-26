@@ -1,0 +1,33 @@
+# Maintainer: Command Line Assistant Contributors <command-line-assistant@example.com>
+pkgname=command-line-assistant
+pkgver=0.2.6
+pkgrel=1
+pkgdesc="Command-line assistant powered by Ollama"
+arch=('any')
+url="https://github.com/rhel-lightspeed/command-line-assistant"
+license=('Apache-2.0')
+depends=('python' 'python-requests' 'python-click' 'python-tomli' 'systemd')
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools')
+source=("${pkgname}-${pkgver}.tar.gz"
+        "command-line-assistant.service"
+        "config.toml")
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+build() {
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  python -m build --wheel --no-isolation
+}
+
+package() {
+  cd "${srcdir}/${pkgname}-${pkgver}"
+  python -m installer --destdir="${pkgdir}" dist/*.whl
+
+  # Install systemd service
+  install -Dm644 "${srcdir}/command-line-assistant.service" \
+    "${pkgdir}/usr/lib/systemd/system/command-line-assistant.service"
+
+  # Install default config
+  install -Dm644 "${srcdir}/config.toml" \
+    "${pkgdir}/etc/xdg/command-line-assistant/config.toml"
+}
+

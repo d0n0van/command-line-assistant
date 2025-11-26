@@ -1,0 +1,29 @@
+Source: command-line-assistant
+Section: admin
+Priority: optional
+Maintainer: Command Line Assistant Contributors <command-line-assistant@example.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               python3-all,
+               python3-build,
+               python3-installer,
+               python3-setuptools,
+               python3-wheel
+Standards-Version: 4.6.0
+Homepage: https://github.com/rhel-lightspeed/command-line-assistant
+Vcs-Browser: https://github.com/rhel-lightspeed/command-line-assistant
+Vcs-Git: https://github.com/rhel-lightspeed/command-line-assistant.git
+
+Package: command-line-assistant
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         python3-requests,
+         python3-click,
+         python3-tomli,
+         systemd
+Description: Command-line assistant powered by Ollama
+ Command-line assistant that provides AI-driven assistance using Ollama.
+ Configure Ollama endpoint, model, and temperature via configuration file.
+ Includes both CLI tool and daemon service.
+

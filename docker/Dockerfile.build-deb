@@ -1,0 +1,38 @@
+FROM debian:bookworm-slim
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    debhelper \
+    dh-python \
+    python3-all \
+    python3-build \
+    python3-installer \
+    python3-setuptools \
+    python3-wheel \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy source and packaging files
+COPY command-line-assistant-0.2.4.tar.gz ./
+COPY packaging/debian ./debian/
+COPY packaging/command-line-assistant.service ./
+COPY packaging/config.toml ./
+
+# Extract and build
+RUN tar -xzf command-line-assistant-0.2.4.tar.gz && \
+    cd command-line-assistant-0.2.4 && \
+    cp -r ../debian . && \
+    dpkg-buildpackage -us -uc -b && \
+    mkdir -p /output && \
+    cp ../command-line-assistant_*.deb /output/ 2>/dev/null || true && \
+    cp ../command-line-assistant_*.changes /output/ 2>/dev/null || true && \
+    cp ../command-line-assistant_*.dsc /output/ 2>/dev/null || true
+
+# Output directory
+VOLUME ["/output"]
+
+# Keep container running to allow volume copy
+CMD ["sh", "-c", "ls -la /output && sleep 1"]
+

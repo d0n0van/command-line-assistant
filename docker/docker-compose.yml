@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  test-debian:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.debian
+    volumes:
+      - ../debuild:/build
+    environment:
+      - PACKAGE_TYPE=deb
+
+  test-ubuntu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ubuntu
+    volumes:
+      - ../debuild:/build
+    environment:
+      - PACKAGE_TYPE=deb
+
+  test-arch:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.arch
+    volumes:
+      - ../archbuild:/build
+    environment:
+      - PACKAGE_TYPE=arch
+    privileged: true
+
+  test-fedora:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.fedora
+    volumes:
+      - ../rpmbuild:/root/rpmbuild
+    environment:
+      - PACKAGE_TYPE=rpm
+
+  test-rhel:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rhel
+    volumes:
+      - ../rpmbuild:/root/rpmbuild
+    environment:
+      - PACKAGE_TYPE=rpm
+
+  test-suse:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.suse
+    volumes:
+      - ../rpmbuild:/root/rpmbuild
+    environment:
+      - PACKAGE_TYPE=rpm
+

@@ -1,0 +1,26 @@
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-requests \
+    python3-click \
+    python3-tomli \
+    systemd \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy built DEB package
+COPY debuild/command-line-assistant_*.deb ./
+
+# Install the package
+RUN dpkg -i command-line-assistant_*.deb || apt-get install -f -y
+
+# Copy test script
+COPY docker/test-package.sh /test-package.sh
+RUN chmod +x /test-package.sh
+
+# Run tests
+CMD ["/test-package.sh"]
+

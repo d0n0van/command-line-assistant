@@ -1,0 +1,38 @@
+FROM archlinux:latest
+
+# Install build dependencies
+RUN pacman -Syu --noconfirm && \
+    pacman -S --noconfirm \
+    base-devel \
+    python \
+    python-build \
+    python-installer \
+    python-wheel \
+    python-setuptools
+
+# Create build user (required for makepkg)
+RUN useradd -m -s /bin/bash builder && \
+    echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+WORKDIR /build
+
+# Copy source and packaging files
+COPY command-line-assistant-0.2.4.tar.gz ./
+COPY packaging/command-line-assistant.service ./
+COPY packaging/config.toml ./
+COPY packaging/PKGBUILD ./
+
+# Set ownership
+RUN chown -R builder:builder /build
+
+# Build package as builder user
+USER builder
+RUN makepkg -s --noconfirm --skipinteg
+
+# Output directory
+VOLUME ["/output"]
+
+# Copy built packages to output
+USER root
+CMD ["sh", "-c", "cp command-line-assistant-*.pkg.tar.zst /output/ 2>/dev/null || true"]
+

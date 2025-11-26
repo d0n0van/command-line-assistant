@@ -1,0 +1,27 @@
+command-line-assistant (0.2.6-1) unstable; urgency=medium
+
+  * Version bump to 0.2.6
+  * Added conversation history context in interactive mode
+  * Interactive mode now maintains context across multiple queries
+  * Added 'clear' command to clear conversation history
+
+ -- Command Line Assistant Contributors <command-line-assistant@example.com>  Tue, 26 Nov 2024 12:00:00 +0000
+
+command-line-assistant (0.2.5-1) unstable; urgency=medium
+
+  * Version bump to 0.2.5
+  * Added multi-platform packaging support (DEB, RPM, Arch, Gentoo)
+  * Added Docker-based build and testing infrastructure
+
+ -- Command Line Assistant Contributors <command-line-assistant@example.com>  Tue, 26 Nov 2024 12:00:00 +0000
+
+command-line-assistant (0.2.4-1) unstable; urgency=medium
+
+  * Added command output analysis and reaction feature
+  * AI now analyzes command output and executes follow-up commands automatically
+  * Enhanced iterative execution with max iterations limit
+  * Improved error handling with automatic recovery
+  * Platform-independent: Automatically detects Linux distribution
+
+ -- Command Line Assistant Contributors <command-line-assistant@example.com>  Tue, 26 Nov 2024 12:00:00 +0000
+

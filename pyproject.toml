@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "command-line-assistant"
+version = "0.2.6"
+description = "Production-ready command-line assistant powered by Ollama for system administration"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Command Line Assistant Contributors"}
+]
+keywords = ["cli", "assistant", "ollama", "ai", "linux", "system-administration"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Developers",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+]
+
+dependencies = [
+    "requests>=2.28.0",
+    "tomli>=2.0.0; python_version < '3.11'",
+    "click>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+]
+
+[project.scripts]
+cla = "command_line_assistant.cli:main"
+clad = "command_line_assistant.daemon:main"
+
+[project.urls]
+Homepage = "https://github.com/rhel-lightspeed/command-line-assistant"
+Documentation = "https://command-line-assistant.readthedocs.io"
+Repository = "https://github.com/rhel-lightspeed/command-line-assistant"
+
+[tool.setuptools]
+packages = ["command_line_assistant"]
+
+[tool.setuptools.package-data]
+command_line_assistant = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+

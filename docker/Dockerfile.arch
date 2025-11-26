@@ -1,0 +1,26 @@
+FROM archlinux:latest
+
+# Install runtime dependencies
+RUN pacman -Syu --noconfirm && \
+    pacman -S --noconfirm \
+    python \
+    python-requests \
+    python-click \
+    python-tomli \
+    systemd
+
+WORKDIR /build
+
+# Copy built Arch package
+COPY archbuild/command-line-assistant-*.pkg.tar.zst ./
+
+# Install the package
+RUN pacman -U --noconfirm command-line-assistant-*.pkg.tar.zst || true
+
+# Copy test script
+COPY docker/test-package.sh /test-package.sh
+RUN chmod +x /test-package.sh
+
+# Run tests
+CMD ["/test-package.sh"]
+
