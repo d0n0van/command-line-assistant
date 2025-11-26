@@ -563,6 +563,8 @@ Based on this output, what should we do next? If the task is complete, say so. I
             if not allow_sudo and executor.has_sudo(command):
                 command = executor.strip_sudo(command)
                 print_info(f"⚠️  Sudo removed from command (sudo disabled by default): {original_command} → {command}")
+                print_info("💡 To enable sudo, run the command again with the --sudo or --allow-sudo flag")
+                print_info("   Example: cla --execute --sudo \"your command here\"")
             
             # Execute command
             try:

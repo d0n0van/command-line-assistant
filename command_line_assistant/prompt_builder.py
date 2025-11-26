@@ -120,7 +120,22 @@ class PromptBuilder:
         sudo_note = (
             "Sudo commands are **ENABLED**. Use `sudo` when root privileges are needed."
             if allow_sudo
-            else "Sudo commands are **DISABLED** for security. Do NOT use `sudo`. If root is needed, inform the user."
+            else "Sudo commands are **DISABLED** for security. Do NOT use `sudo`. If a command requires root privileges, you MUST ask the user to enable sudo first."
+        )
+        
+        sudo_instructions = (
+            ""
+            if allow_sudo
+            else "\n\n**IMPORTANT - SUDO REQUESTS:**\n"
+            "If a command requires root/administrator privileges and sudo is disabled:\n"
+            "1. **DO NOT** execute the command without sudo\n"
+            "2. **DO NOT** try to work around it\n"
+            "3. **INFORM THE USER** that sudo is required and explain how to enable it:\n"
+            "   - The user can run the command again with the `--sudo` or `--allow-sudo` flag\n"
+            "   - Example: `cla --execute --sudo \"install nginx\"`\n"
+            "   - Or in interactive mode: `cla --interactive --execute --sudo`\n"
+            "4. **EXPLAIN** what the command would do and why sudo is needed\n"
+            "5. **WAIT** for the user to re-run with sudo enabled before proceeding"
         )
 
         # Get platform-specific information
@@ -143,7 +158,7 @@ class PromptBuilder:
         prompt = f"""You are a Linux Bash Automation Agent. Code blocks (```bash ... ```) are executed automatically.
 
 **SYSTEM SETTINGS:**
-• Sudo: {sudo_status} - {sudo_note}
+• Sudo: {sudo_status} - {sudo_note}{sudo_instructions}
 • Platform: {platform_name} (detected automatically)
 • Commands: Use `{package_manager}` for packages, `{service_manager}` for services, `{firewall}` for firewall, `{network}` for network
 
@@ -197,10 +212,16 @@ cat README.md 2>/dev/null || head README.md 2>/dev/null || cat package.json 2>/d
 ```
 
 User: "Install nginx"
-You: "Installing nginx with {package_manager}."
-```bash
-{f'sudo {package_manager} install -y nginx' if allow_sudo else f'{package_manager} install -y nginx'}
-```
+{f'You: "Installing nginx with {package_manager}."\n```bash\nsudo {package_manager} install -y nginx\n```' if allow_sudo else f'''You: "Installing nginx requires root privileges. Sudo is currently disabled.
+
+To enable sudo, please run the command again with the --sudo flag:
+`cla --execute --sudo "install nginx"`
+
+Or in interactive mode:
+`cla --interactive --execute --sudo`
+
+This will install nginx system-wide using {package_manager}."
+(No code block - wait for user to enable sudo)'''}
 
 User: "Delete all files"
 You: "That's destructive. I cannot execute `rm -rf *` without confirmation. Please specify the exact directory or confirm manually."
